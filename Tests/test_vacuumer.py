@@ -1,3 +1,5 @@
+import datetime
+
 from DatabaseConnections.databaseconnection import DatabaseConnection
 from Purpose import Purpose
 from Vacuumer import Vacuumer
@@ -12,6 +14,10 @@ class MocDBConnection(DatabaseConnection):
 
     def run_script(self, query):
         pass
+
+
+def get_date_format():
+    return "%Y-%m-%d %H:%M"
 
 
 def test_add_or_update_dict_adds_element_if_not_present():
@@ -39,3 +45,69 @@ def test_add_or_update_dict_updates_element_if_present():
     assert len(vacuumer.table_column_meta_data) == 1
     assert purpose in vacuumer.table_column_meta_data[dict_name].purposes
     assert purpose2 in vacuumer.table_column_meta_data[dict_name].purposes
+
+
+def test_time_parser_parses_year():
+    vacuumer = Vacuumer(MocDBConnection("ConnectionString"), "CreationScript", "MetadataSelectionQuery")
+    start_date = "2023-03-21 13:14"
+    expected_date = '"2021-03-21 13:14"'
+    result = vacuumer.ttl_last_date_calculator("2y", datetime.datetime.strptime(start_date, get_date_format()))
+    assert result == expected_date
+
+
+def test_time_parser_parses_month():
+    start_date = "2023-03-21 13:14"
+    expected_date = '"2023-01-21 13:14"'
+    vacuumer = Vacuumer(MocDBConnection("ConnectionString"), "CreationScript", "MetadataSelectionQuery")
+    result = vacuumer.ttl_last_date_calculator("2m", datetime.datetime.strptime(start_date, get_date_format()))
+    assert result == expected_date
+
+
+def test_time_parser_parses_days():
+    start_date = "2023-03-21 13:14"
+    expected_date = '"2023-03-19 13:14"'
+    vacuumer = Vacuumer(MocDBConnection("ConnectionString"), "CreationScript", "MetadataSelectionQuery")
+    result = vacuumer.ttl_last_date_calculator("2d", datetime.datetime.strptime(start_date, get_date_format()))
+
+    assert result == expected_date
+
+
+def test_time_parser_parses_hours():
+    start_date = "2023-03-21 13:14"
+    expected_date = '"2023-03-21 11:14"'
+    vacuumer = Vacuumer(MocDBConnection("ConnectionString"), "CreationScript", "MetadataSelectionQuery")
+    result = vacuumer.ttl_last_date_calculator("2h", datetime.datetime.strptime(start_date, get_date_format()))
+
+    assert result == expected_date
+
+
+def test_time_parser_parses_minutes():
+    start_date = "2023-03-21 13:14"
+    expected_date = '"2023-03-21 13:12"'
+    vacuumer = Vacuumer(MocDBConnection("ConnectionString"), "CreationScript", "MetadataSelectionQuery")
+    result = vacuumer.ttl_last_date_calculator("2M", datetime.datetime.strptime(start_date, get_date_format()))
+
+    assert result == expected_date
+
+
+def test_time_parser_parses_all_in_one():
+    start_date = "2023-03-21 13:14"
+    expected_date = '"2021-01-19 11:12"'
+    vacuumer = Vacuumer(MocDBConnection("ConnectionString"), "CreationScript", "MetadataSelectionQuery")
+    result = vacuumer.ttl_last_date_calculator("2y 2m 2d 2h 2M",
+                                               datetime.datetime.strptime(start_date, get_date_format()))
+
+    assert result == expected_date
+
+
+def test_get_number_from_time_component_returns_number():
+    vacuumer = Vacuumer(MocDBConnection("ConnectionString"), "CreationScript", "MetadataSelectionQuery")
+    result = vacuumer.get_number_from_time_component("222d")
+
+    assert result == 222
+
+def test_get_number_from_time_component_no_number_given():
+    vacuumer = Vacuumer(MocDBConnection("ConnectionString"), "CreationScript", "MetadataSelectionQuery")
+    result = vacuumer.get_number_from_time_component("d")
+
+    assert result is None
